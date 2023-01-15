@@ -30,7 +30,7 @@ void got_packet(const struct pcap_pkthdr *header, const u_char *packet) {
 
 
     fprintf(pfile,
-            "source ip: %s, dest_ip: %s, source_port: %d, dest_port: %d, timestamp: %s, total_length: %s, cache_flag: %s, steps_flag: %s, type_flag: %s, status_code: %s, cache_control: %s, data: %s",
+            "source ip: %s, dest_ip: %s, source_port: %d, dest_port: %d, timestamp: %s, total_length: %s, cache_flag: %s, steps_flag: %s, type_flag: %s, status_code: %s, cache_control: %s, data: %s\n",
             source_ip, dest_ip, source_port, dest_port, timestamp, total_length, cache_flag, steps_flag, type_flag, status_code, cache_control, data);
 
     fclose(pfile);
