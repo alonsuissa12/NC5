@@ -2,7 +2,6 @@
 // Created by alon on 1/12/23.
 //
 
-#include "sniffer.h"
 #include <pcap.h>
 #include <stdio.h>
 #include <netinet/ip.h>
@@ -10,37 +9,57 @@
 #include <netinet/ether.h>
 #include "arpa/inet.h"
 
-void got_packet(const struct pcap_pkthdr *header, const u_char *packet) {
+typedef struct application_header {
+    unsigned int unix_time;
+    unsigned short total_length;
+    unsigned char reserved: 3;
+    unsigned char cache: 1;
+    unsigned char steps: 1;
+    unsigned char type: 1;
+    unsigned short status_code: 10;
+    unsigned short cache_control;
+    unsigned short padding;
+    unsigned char data[8180];
+} app_header;
+
+void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
     FILE *pfile;
     pfile = fopen("211344015_208007351.txt", "a+");
-
+    printf("cdbclbl");
     if (pfile == NULL) {
         printf("Error opening file!\n");
         return;
     }
+
     struct ether_header *eth_header = (struct ether_header *) packet;
     struct tcphdr *tcp_header = (struct tcphdr *) (packet + sizeof(struct ether_header) +
                                                    sizeof(struct ip)); // thats it?
     const struct ip *ip_header = (struct ip *) (packet + sizeof(struct ether_header));
+    app_header *appH = (app_header *) (packet + sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct tcphdr));
 
-    int source_port, dest_port, total_length,timestamp;
-    char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN], *cache_flag, *steps_flag, *type_flag, *status_code, *cache_control, *data;
+
+    char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN], *data;
     inet_ntop(AF_INET, &ip_header->ip_src, source_ip, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &ip_header->ip_dst, dest_ip, INET_ADDRSTRLEN);
-    source_port = (int) ntohs(tcp_header->th_sport);
-    dest_port = (int) ntohs(tcp_header->th_dport);
-    timestamp =(int) header->ts.tv_sec;
-    total_length = (int) ntohs(header->caplen);
+    unsigned int source_port =  ntohs(tcp_header->th_sport);
+    unsigned int dest_port = ntohs(tcp_header->th_dport);
+    unsigned int timestamp = appH->unix_time;
+    unsigned int total_length =  ntohs(header->caplen);
+    unsigned char cache_flag = appH->cache;
+    unsigned char steps_flag = appH->steps;
+    unsigned char type_flag = appH->type;
+    unsigned int status_code = appH->status_code;
+    unsigned short cache_control = appH->cache_control;
 
-
+    fprintf(pfile,"%u\n",(unsigned int)header->ts.tv_sec);
     fprintf(pfile,
-            "source ip: %s, dest_ip: %s, source_port: %d, dest_port: %d, timestamp: %d, total_length: %d\n",
-          source_ip, dest_ip, source_port, dest_port, timestamp,total_length);// ,cache_flag, steps_flag, type_flag,
-//            status_code, cache_control, data);
+            "source ip: %s, dest_ip: %s, source_port: %u, dest_port: %u, timestamp: %u, total_length: %u, cache_flag: %hu, steps_flag: %u, type_flag: %u, status_code: %u, cache_control: %hu, data: \n",
+            source_ip, dest_ip, source_port, dest_port, timestamp, total_length, cache_flag, steps_flag, type_flag, status_code, cache_control);
 
     fclose(pfile);
 }
-//, cache_flag: %s, steps_flag: %s, type_flag: %s, status_code: %s, cache_control: %s, data: %s\n",
+
+
 int main() {
     pcap_t *handle;
     char error_buf[PCAP_ERRBUF_SIZE];
@@ -49,12 +68,15 @@ int main() {
     bpf_u_int32 net;
 
     // Step 1: Open live pcap session on NIC with name eth3
-    handle = pcap_open_live("eth3", BUFSIZ, 1, 1000, error_buf);
+    handle = pcap_open_live("lo", BUFSIZ, 1, 1000, error_buf);
+    printf("1\n");
 
     // Step 2: Compile filter_exp into BPF psuedo-code
-    pcap_compile(handle, &fp, filter_exp, 0, net);
+    printf("1.5\n");
+    pcap_compile(handle, &fp, filter_exp, 0, net); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    printf("1.7\n");
     pcap_setfilter(handle, &fp);
-
+    printf("2\n");
     // Step 3: Capture packets
     pcap_loop(handle, -1, got_packet, NULL);
 
