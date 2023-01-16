@@ -7,18 +7,20 @@
 #include <stdio.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <netinet/ether.h>
 #include "arpa/inet.h"
 
 void got_packet(const struct pcap_pkthdr *header, const u_char *packet) {
     FILE *pfile;
-    pfile = fopen("211344015_208007351.txt", "a");
+    pfile = fopen("211344015_208007351.txt", "a+");
 
     if (pfile == NULL) {
         printf("Error opening file!\n");
         return;
     }
-    struct tcphdr *tcp_header = (struct tcphdr*)(packet + sizeof(struct ip)); // thats it?
-    const struct ip *ip_header = (struct ip*)(packet);
+    struct ether_header *eth_header = (struct ether_header *)packet;
+    struct tcphdr *tcp_header = (struct tcphdr*)(packet + sizeof(struct ether_header) + sizeof(struct ip)); // thats it?
+    const struct ip *ip_header = (struct ip*)(packet + sizeof(struct ether_header));
 
     int  source_port, dest_port;
     char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN] , *timestamp, *total_length, *cache_flag, *steps_flag, *type_flag, *status_code, *cache_control, *data;
@@ -26,6 +28,8 @@ void got_packet(const struct pcap_pkthdr *header, const u_char *packet) {
     inet_ntop(AF_INET, &ip_header->ip_dst, dest_ip, INET_ADDRSTRLEN);
     source_port = (int)ntohs(tcp_header->th_sport);
     dest_port = (int)ntohs(tcp_header->th_dport);
+
+    unsigned int total_size = header->caplen;
 
 
 
