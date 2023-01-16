@@ -18,28 +18,29 @@ void got_packet(const struct pcap_pkthdr *header, const u_char *packet) {
         printf("Error opening file!\n");
         return;
     }
-    struct ether_header *eth_header = (struct ether_header *)packet;
-    struct tcphdr *tcp_header = (struct tcphdr*)(packet + sizeof(struct ether_header) + sizeof(struct ip)); // thats it?
-    const struct ip *ip_header = (struct ip*)(packet + sizeof(struct ether_header));
+    struct ether_header *eth_header = (struct ether_header *) packet;
+    struct tcphdr *tcp_header = (struct tcphdr *) (packet + sizeof(struct ether_header) +
+                                                   sizeof(struct ip)); // thats it?
+    const struct ip *ip_header = (struct ip *) (packet + sizeof(struct ether_header));
 
-    int  source_port, dest_port;
-    char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN] , *timestamp, *total_length, *cache_flag, *steps_flag, *type_flag, *status_code, *cache_control, *data;
+    int source_port, dest_port, total_length,timestamp;
+    char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN], *cache_flag, *steps_flag, *type_flag, *status_code, *cache_control, *data;
     inet_ntop(AF_INET, &ip_header->ip_src, source_ip, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &ip_header->ip_dst, dest_ip, INET_ADDRSTRLEN);
-    source_port = (int)ntohs(tcp_header->th_sport);
-    dest_port = (int)ntohs(tcp_header->th_dport);
-
-    unsigned int total_size = header->caplen;
-
+    source_port = (int) ntohs(tcp_header->th_sport);
+    dest_port = (int) ntohs(tcp_header->th_dport);
+    timestamp =(int) header->ts.tv_sec;
+    total_length = (int) ntohs(header->caplen);
 
 
     fprintf(pfile,
-            "source ip: %s, dest_ip: %s, source_port: %d, dest_port: %d, timestamp: %s, total_length: %s, cache_flag: %s, steps_flag: %s, type_flag: %s, status_code: %s, cache_control: %s, data: %s\n",
-            source_ip, dest_ip, source_port, dest_port, timestamp, total_length, cache_flag, steps_flag, type_flag, status_code, cache_control, data);
+            "source ip: %s, dest_ip: %s, source_port: %d, dest_port: %d, timestamp: %d, total_length: %d\n",
+          source_ip, dest_ip, source_port, dest_port, timestamp,total_length);// ,cache_flag, steps_flag, type_flag,
+//            status_code, cache_control, data);
 
     fclose(pfile);
 }
-
+//, cache_flag: %s, steps_flag: %s, type_flag: %s, status_code: %s, cache_control: %s, data: %s\n",
 int main() {
     pcap_t *handle;
     char error_buf[PCAP_ERRBUF_SIZE];
