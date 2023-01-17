@@ -1,4 +1,4 @@
-all: sniffer spoofer #docker gateway
+all: snifferNspoofer sniffer spoofer #docker gateway
 
 sniffer: sniffer.o
 	gcc sniffer.o -o sniffer -lpcap
@@ -11,6 +11,12 @@ spoofer: spoofer.o
 
 spoofer.o: spoofer.c
 	gcc -Wall -g -c spoofer.c -o spoofer.o -lpcap
+
+snifferNspoofer.o: snifferNspoofer.c
+	gcc -Wall -g -c snifferNspoofer.c -o spoofer.o -lpcap
+
+snifferNspoofer: snifferNspoofer.o
+	gcc snifferNspoofer.o -o snifferNspoofer
 
 .PHONEY: clean all
 
