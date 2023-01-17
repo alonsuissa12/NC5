@@ -76,14 +76,9 @@ int main() {
 
     // Step 1: Open live pcap session on NIC with name eth3
     handle = pcap_open_live("lo", BUFSIZ, 1, 1000, error_buf);
-    printf("1\n");
-
     // Step 2: Compile filter_exp into BPF psuedo-code
-    printf("1.5\n");
     pcap_compile(handle, &fp, filter_exp, 0, net);
-    printf("1.7\n");
     pcap_setfilter(handle, &fp);
-    printf("2\n");
     // Step 3: Capture packets
     pcap_loop(handle, -1, got_packet, NULL);
 
