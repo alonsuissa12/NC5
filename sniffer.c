@@ -39,7 +39,6 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     app_header *appH = (app_header *) (packet + sizeof(struct ether_header) + (ip_header->ip_hl) * 4 +
                                        tcp_header->doff * 4);
 
-
     char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &ip_header->ip_src, source_ip, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &ip_header->ip_dst, dest_ip, INET_ADDRSTRLEN);
@@ -53,12 +52,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
                 source_ip, dest_ip, ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport),
         ntohl(appH->unix_time), ntohs(appH->total_length), (ntohs(appH->flags) >> 12) & 0x1,
                 (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) &0x3ff, ntohs(appH->cache_control));
-//        fprintf(pfile, "",);
-//        fprintf(pfile, "",);
-//        fprintf(pfile, "");
-//        fprintf(pfile, "");
-//        fprintf(pfile, "",);
-//        fprintf(pfile, "",);
+
 
         for (int i = 0; i < data_size; i++) {
             if (!(i & 15)) fprintf(pfile, "\n%04X:  ", i);
@@ -90,12 +84,3 @@ int main() {
     return 0;
 }
 
-//    uint16_t source_port = tcp_header->th_sport
-//    uint16_t dest_port = tcp_header->th_dport
-//    uint32_t timestamp = ntohl(appH->unix_time);
-//    uint16_t total_length = ntohl((header->caplen));
-//    uint16_t cache_flag = appH->cache;
-//    uint16_t steps_flag = appH->steps;
-//    uint16_t type_flag = appH->type;
-//    uint16_t status_code = appH->status_code;
-//    uint16_t cache_control = appH->cache_control;
