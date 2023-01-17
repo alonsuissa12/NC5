@@ -52,7 +52,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
                 "source ip: %s, dest_ip: %s\nsource_port: %u, dest_port: %hu\ntimestamp: %u\ntotal_length: %hu\ncache Flag: %u\nsteps Flag: %u\ntype Flag: %u\nstatus Code: %u\ncache_control: %hu\ndata:",
                 source_ip, dest_ip, ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport),
         ntohl(appH->unix_time), ntohs(appH->total_length), (ntohs(appH->flags) >> 12) & 0x1,
-                (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) &((1 << 10) - 1), ntohs(appH->cache_control));
+                (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) &0x3ff, ntohs(appH->cache_control));
 //        fprintf(pfile, "",);
 //        fprintf(pfile, "",);
 //        fprintf(pfile, "");
