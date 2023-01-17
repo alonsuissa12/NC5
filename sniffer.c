@@ -13,7 +13,7 @@ typedef struct application_header {
     uint32_t unix_time;
     uint16_t total_length;
     union {
-        uint16_t flags ;
+        uint16_t flags;
         uint16_t reserved: 3;
         uint16_t cache: 1;
         uint16_t steps: 1;
@@ -44,24 +44,28 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     inet_ntop(AF_INET, &ip_header->ip_src, source_ip, INET_ADDRSTRLEN);
     inet_ntop(AF_INET, &ip_header->ip_dst, dest_ip, INET_ADDRSTRLEN);
     //
-    unsigned char *data = (unsigned char *) (packet + sizeof(struct ether_header) + (ip_header->ip_hl) * 4 + tcp_header->doff * 4 + sizeof(app_header));
-    unsigned int data_size = header->len - sizeof(struct ether_header) - (ip_header->ip_hl) * 4 - tcp_header->doff * 4 ;
-    if(tcp_header->psh) {
-        fprintf(pfile,"source ip: %s, dest_ip: %s\n",source_ip, dest_ip);
-        fprintf(pfile,"source_port: %u, dest_port: %hu\n",  ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport));
-        fprintf(pfile,"timestamp: %u\ntotal_length: %hu\n", ntohl(appH->unix_time), ntohs(appH->total_length));
-        fprintf(pfile, "cache Flag: %u\n", (ntohs(appH->flags) >> 12)  & 0x1) ;
-        fprintf(pfile, "steps Flag: %u\n", (ntohs(appH->flags) >> 11) & 0x1);
-        fprintf(pfile, "type Flag: %u\n", (ntohs(appH->flags) >> 10)  & 0x1);
-        fprintf(pfile, "status Code: %u\n", ntohs(appH->flags) & ((1 << 10) - 1));
-        fprintf(pfile, "cache_control: %hu\ndata:", ntohs(appH->cache_control));
+    unsigned char *data = (unsigned char *) (packet + sizeof(struct ether_header) + (ip_header->ip_hl) * 4 +
+                                             tcp_header->doff * 4 + sizeof(app_header));
+    unsigned int data_size = header->len - sizeof(struct ether_header) - (ip_header->ip_hl) * 4 - tcp_header->doff * 4;
+    if (tcp_header->psh) {
+        fprintf(pfile,
+                "source ip: %s, dest_ip: %s\nsource_port: %u, dest_port: %hu\ntimestamp: %u\ntotal_length: %hu\ncache Flag: %u\nsteps Flag: %u\ntype Flag: %u\nstatus Code: %u\ncache_control: %hu\ndata:",
+                source_ip, dest_ip, ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport),
+        ntohl(appH->unix_time), ntohs(appH->total_length), (ntohs(appH->flags) >> 12) & 0x1,
+                (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) &((1 << 10) - 1), ntohs(appH->cache_control));
+//        fprintf(pfile, "",);
+//        fprintf(pfile, "",);
+//        fprintf(pfile, "");
+//        fprintf(pfile, "");
+//        fprintf(pfile, "",);
+//        fprintf(pfile, "",);
 
         for (int i = 0; i < data_size; i++) {
             if (!(i & 15)) fprintf(pfile, "\n%04X:  ", i);
             fprintf(pfile, "%02X ", ((unsigned char *) data)[i]);
         }
     }
-    fprintf(pfile,"\n");
+    fprintf(pfile, "\n");
 
     fclose(pfile);
 }
@@ -76,7 +80,7 @@ int main() {
 
     // Step 1: Open live pcap session on NIC with name eth3
     handle = pcap_open_live("lo", BUFSIZ, 1, 1000, error_buf);
-    // Step 2: Compile filter_exp into BPF psuedo-code
+    // Step 2: Compile filter_exp into BPF
     pcap_compile(handle, &fp, filter_exp, 0, net);
     pcap_setfilter(handle, &fp);
     // Step 3: Capture packets
