@@ -2,14 +2,196 @@
 // Created by alon on 1/12/23.
 //
 
-#include "string.h"
-#include <stdio.h>
-#include <netinet/tcp.h>
-#include <netinet/ether.h>
-#include "arpa/inet.h"
+#include <arpa/inet.h> // for inet_ntoa()
+#include <net/ethernet.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <stdio.h>
 #include <netinet/ip.h>
+#include <unistd.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <stdlib.h>
+
+
+
+// ip header
+
+struct ipheader {
+    unsigned char      iph_ihl:4, //IP header length
+    iph_ver:4; //IP version
+    unsigned char      iph_tos; //Type of service
+    unsigned short int iph_len; //IP Packet length (data + header)
+    unsigned short int iph_ident; //Identification
+    unsigned short int iph_flag:3, //Fragmentation flags
+    iph_offset:13; //Flags offset
+    unsigned char      iph_ttl; //Time to Live
+    unsigned char      iph_protocol; //Protocol type
+    unsigned short int iph_chksum; //IP datagram checksum
+    struct  in_addr    iph_sourceip; //Source IP address
+    struct  in_addr    iph_destip;   //Destination IP address
+};
+
+
+
+
+
+/*tcp header */
+struct tcpheader
+{
+    u_short th_sport;    /* source port */
+    u_short th_dport;    /* destination port */
+    unsigned int th_seq; /* sequence number */
+    unsigned int th_ack; /* acknowledgement number */
+    u_short th_win;      /* window */
+    u_short th_sum;      /* checksum */
+    u_short th_urp;      /* urgent pointer */
+};
+
+
+/* ICMP Header  */
+struct icmpheader {
+    unsigned char icmp_type; // ICMP message type
+    unsigned char icmp_code; // Error code
+    unsigned short int icmp_chksum; //Checksum for ICMP Header and data
+    unsigned short int icmp_id;     //Used for identifying request
+    unsigned short int icmp_seq;    //Sequence number
+};
+
+struct udpheader
+{
+    u_int16_t udp_sport; /* source port */
+    u_int16_t udp_dport; /* destination port */
+    u_int16_t udp_ulen;  /* udp length */
+    u_int16_t udp_sum;   /* udp checksum */
+};
+
+
+
+void send_raw_ip_packet(struct ipheader* ip){
+    struct sockaddr_in dest_info;
+    int enable = 1;
+
+    // Step 1: Create a raw network socket.
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+
+    // Step 2: Set socket option.
+    setsockopt(sock, IPPROTO_IP, IP_HDRINCL,
+               &enable, sizeof(enable));
+
+    // Step 3: Provide needed information about destination.
+    dest_info.sin_family = AF_INET;
+    dest_info.sin_addr = ip->iph_destip;
+
+    // Step 4: Send the packet out.
+    sendto(sock, ip, ntohs(ip->iph_len), 0,
+           (struct sockaddr *)&dest_info, sizeof(dest_info));
+    close(sock);
+}
+
+
+//tcp cheksum
+
+// unsigned short calculate_tcp_checksum(struct ipheader *ip)
+// {
+//    struct tcpheader *tcp = (struct tcpheader *)((u_char *)ip +
+//                             sizeof(struct ipheader));
+
+//    int tcp_len = ntohs(ip->iph_len) - sizeof(struct ipheader);
+
+//    /* pseudo tcp header for the checksum computation */
+//    struct pseudo_tcp p_tcp;
+//    memset(&p_tcp, 0x0, sizeof(struct pseudo_tcp));
+
+//    p_tcp.saddr  = ip->iph_sourceip.s_addr;
+//    p_tcp.daddr  = ip->iph_destip.s_addr;
+//    p_tcp.mbz    = 0;
+//    p_tcp.ptcl   = IPPROTO_TCP;
+//    p_tcp.tcpl   = htons(tcp_len);
+//    memcpy(&p_tcp.tcp, tcp, tcp_len);
+
+//    return  (unsigned short) in_cksum((unsigned short *)&p_tcp,
+//                                      tcp_len + 12);
+// }
+
+//icmp cheksum
+
+
+unsigned short in_cksum(unsigned short *buf, int length)
+{
+    unsigned short *w = buf;
+    int nleft = length;
+    int sum = 0;
+    unsigned short temp = 0;
+
+    /*
+     * The algorithm uses a 32 bit accumulator (sum), adds
+     * sequential 16 bit words to it, and at the end, folds back all
+     * the carry bits from the top 16 bits into the lower 16 bits.
+     */
+    while (nleft > 1)
+    {
+        sum += *w++;
+        nleft -= 2;
+    }
+
+    /* treat the odd byte at the end, if any */
+    if (nleft == 1)
+    {
+        *(u_char *)(&temp) = *(u_char *)w;
+        sum += temp;
+    }
+
+    /* add back carry outs from top 16 bits to low 16 bits */
+    sum = (sum >> 16) + (sum & 0xffff); // add hi 16 to low 16
+    sum += (sum >> 16);                 // add carry
+    return (unsigned short)(~sum);
+}
+
+
+/* set tcp checksum: given IP header and UDP datagram */
+void compute_udp_checksum(struct iphdr *pIph, unsigned short *ipPayload) {
+    register unsigned long sum = 0;
+    struct udphdr* udphdrp = (struct udphdr*)(ipPayload);
+    unsigned short udpLen = htons(udphdrp->len);
+    //printf("~~~~~~~~~~~udp len=%dn", udpLen);
+    //add the pseudo header
+    //printf("add pseudo headern");
+    //the source ip
+    sum += (pIph->saddr>>16)&0xFFFF;
+    sum += (pIph->saddr)&0xFFFF;
+    //the dest ip
+    sum += (pIph->daddr>>16)&0xFFFF;
+    sum += (pIph->daddr)&0xFFFF;
+    //protocol and reserved: 17
+    sum += htons(IPPROTO_UDP);
+    //the length
+    sum += udphdrp->len;
+
+    //add the IP payload
+    //printf("add ip payloadn");
+    //initialize checksum to 0
+    udphdrp->check = 0;
+    while (udpLen > 1) {
+        sum += * ipPayload++;
+        udpLen -= 2;
+    }
+    //if any bytes left, pad the bytes and add
+    if(udpLen > 0) {
+        //printf("+++++++++++++++padding: %dn", udpLen);
+        sum += ((*ipPayload)&htons(0xFF00));
+    }
+    //Fold sum to 16 bits: add carrier to result
+    //printf("add carriern");
+    while (sum>>16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+    //printf("one's complementn");
+    sum = ~sum;
+    //set computation result
+    udphdrp->check = ((unsigned short)sum == 0x0000)?0xFFFF:(unsigned short)sum;
+
+}
 
 /******************************************************************
   Spoof an ICMP paket
