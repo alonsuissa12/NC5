@@ -246,6 +246,7 @@ void icmp_spoof() {
     ip->iph_len = htons(sizeof(struct ipheader) +
                         sizeof(struct icmpheader));
 
+
     /*********************************************************
        Step 3: Finally, send the spoofed packet
      ********************************************************/
@@ -291,52 +292,12 @@ unsigned short calculate_tcp_checksum(struct ipheader *ip)
                                       tcp_len + 12);
 }
 
-void tcp_spoof(){
-    char packet[5000];
-    memset(packet, 0, sizeof(packet));
-
-    // Create pointers to the headers
-    struct ipheader *ip = (struct ipheader *) packet;
-    struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof(struct iphdr));
-
-    // IP header
-    ip->iph_ver = 4;
-    ip->iph_ihl = 5;
-    ip->iph_ttl = 100;
-    ip->iph_sourceip.s_addr = inet_addr("1.2.3.4");
-    ip->iph_destip.s_addr = inet_addr("10.9.0.1");
-    ip->iph_protocol = IPPROTO_TCP;
-    ip->iph_len = htons(sizeof(struct ipheader) + sizeof(struct icmpheader));
-    ip->iph_ident = htons(rand());
-
-
-    // TCP header
-    tcp->source = htons(5556);
-    tcp->dest = htons(5555);
-    tcp->seq = htonl(0);
-    tcp->ack_seq = 0;
-    tcp->doff = sizeof(struct tcphdr) / 4;
-    tcp->syn = 1;
-    tcp->ack = 0;
-    tcp->rst = 0;
-    tcp->psh = 0;
-    tcp->urg = 0;
-    tcp->window = htons(5000);
-    tcp->check = calculate_tcp_checksum(ip);
-    tcp->urg_ptr = 0;
-
-    send_raw_ip_packet(ip);
-
-
-}
-
 
 
 int main(){
 
-    //icmp_spoof();
+    icmp_spoof();
     //udp_spoof();
-    tcp_spoof();
 
 
     return 0;

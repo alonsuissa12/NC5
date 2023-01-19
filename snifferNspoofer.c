@@ -3,10 +3,16 @@
 #include <stdio.h>
 #include <netinet/ip.h>
 #include "arpa/inet.h"
-#include "snifferNspoofer.h"
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/ip.h>
+//#include <netinet/ip.h>
+#include <net/ethernet.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+//#include <netinet/ip_icmp.h>
+
+#define ICMP_ECHOREPLY 0;
 
 
 
@@ -89,16 +95,38 @@ void send_raw_ip_packet(struct ipheader* ip){
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
 
-    struct ipheader * ip_header = (struct ipheader *) (packet);
-    struct  icmpheader icmp_heder = (struct icmpheader *) (packet + (ip_header->ip_hl) * 4));
-    struct in_addr temp = ip_header->iph_destip;
-    ip_header->iph_destip = ip_header->iph_sourceip;
-    ip_header->iph_sourceip = temp;
-    icmp_heder.icmp_code = 0;
-    icmp_heder.icmp_type = ICMP_ECHO;
-    icmp_heder.icmp_chksum = in_cksum((unsigned short *)icmp, sizeof(struct icmpheader));
-    send_raw_ip_packet(ip_header);
+    struct ipheader * ip_header = (struct ipheader *) (packet + 14);
+    struct  icmpheader * icmp_heder = ((struct icmpheader *) (packet + 14+ sizeof(struct ipheader)));
 
+    if(icmp_heder->icmp_type == 8) {
+        printf("spooing packet...\n");
+        char pong[1500];
+        memset(pong,0,1500);
+        struct ipheader * pong_ip_header = (struct ipheader *) (pong + 14);
+        struct  icmpheader * pong_icmp_heder = ((struct icmpheader *) (pong + 14+ sizeof(struct ipheader)));
+        pong_ip_header->iph_destip = ip_header->iph_sourceip;
+        pong_ip_header->iph_sourceip = ip_header->iph_destip;
+        pong_ip_header->iph_ihl = ip_header->iph_ihl;
+        pong_ip_header->iph_chksum = ip_header->iph_chksum;
+        pong_ip_header->iph_ident = ip_header->iph_ident;
+        pong_ip_header->iph_ver = ip_header->iph_ver;
+        pong_ip_header->iph_flag = ip_header->iph_flag;
+        pong_ip_header->iph_offset = ip_header->iph_offset;
+        pong_ip_header->iph_ver = ip_header->iph_ver;
+        pong_ip_header->iph_protocol = ip_header->iph_protocol;
+        pong_ip_header->iph_tos = ip_header->iph_tos;
+        pong_ip_header->iph_ttl = ip_header->iph_ttl;
+        pong_ip_header->iph_len = htons(sizeof (struct ipheader ) + sizeof(struct icmpheader));
+
+        pong_icmp_heder->icmp_code = icmp_heder->icmp_code;
+        pong_icmp_heder->icmp_type = ICMP_ECHOREPLY;
+        pong_icmp_heder->icmp_id = icmp_heder->icmp_id;
+        pong_icmp_heder->icmp_seq = icmp_heder->icmp_seq;
+        pong_icmp_heder->icmp_chksum = in_cksum((unsigned short *) pong_icmp_heder, sizeof(struct icmpheader));
+
+
+        send_raw_ip_packet(pong_ip_header);
+    }
 }
 
 
@@ -110,7 +138,7 @@ int main() {
     bpf_u_int32 net;
 
     // Step 1: Open live pcap session on NIC with name eth3
-    handle = pcap_open_live("lo", BUFSIZ, 1, 1000, error_buf);
+    handle = pcap_open_live("br-01afb1c958ad", BUFSIZ, 1, 1000, error_buf);
     // Step 2: Compile filter_exp into BPF
     pcap_compile(handle, &fp, filter_exp, 0, net);
     pcap_setfilter(handle, &fp);

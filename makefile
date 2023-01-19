@@ -13,10 +13,10 @@ spoofer.o: spoofer.c
 	gcc -Wall -g -c spoofer.c -o spoofer.o -lpcap
 
 snifferNspoofer.o: snifferNspoofer.c
-	gcc -Wall -g -c snifferNspoofer.c -o spoofer.o -lpcap
+	gcc -Wall -g -c snifferNspoofer.c -o snifferNspoofer.o -lpcap
 
 snifferNspoofer: snifferNspoofer.o
-	gcc snifferNspoofer.o -o snifferNspoofer
+	gcc snifferNspoofer.o -o snifferNspoofer -lpcap
 
 .PHONEY: clean all
 
