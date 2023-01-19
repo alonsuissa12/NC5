@@ -46,20 +46,43 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     unsigned char *data = (unsigned char *) (packet + sizeof(struct ether_header) + (ip_header->ip_hl) * 4 +
                                              tcp_header->doff * 4 + sizeof(app_header));
     unsigned int data_size = header->len - sizeof(struct ether_header) - (ip_header->ip_hl) * 4 - tcp_header->doff * 4;
+    fprintf(pfile, "---------");
+    if (tcp_header->psh) {
+        fprintf(pfile, " PSH ");
+    }
+    if (tcp_header->syn) {
+        fprintf(pfile, " SYN ");
+    }
+    if (tcp_header->ack) {
+        fprintf(pfile, " ACK ");
+    }
+    if (tcp_header->fin) {
+        fprintf(pfile, " FIN ");
+    }
+    fprintf(pfile, "----------");
+
+
     if (tcp_header->psh) {
         fprintf(pfile,
                 "source ip: %s, dest_ip: %s\nsource_port: %u, dest_port: %hu\ntimestamp: %u\ntotal_length: %hu\ncache Flag: %u\nsteps Flag: %u\ntype Flag: %u\nstatus Code: %u\ncache_control: %hu\ndata:",
                 source_ip, dest_ip, ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport),
-        ntohl(appH->unix_time), ntohs(appH->total_length), (ntohs(appH->flags) >> 12) & 0x1,
-                (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) &0x3ff, ntohs(appH->cache_control));
+                ntohl(appH->unix_time), ntohs(appH->total_length), (ntohs(appH->flags) >> 12) & 0x1,
+                (ntohs(appH->flags) >> 11) & 0x1, (ntohs(appH->flags) >> 10) & 0x1, ntohs(appH->flags) & 0x3ff,
+                ntohs(appH->cache_control));
 
 
         for (int i = 0; i < data_size; i++) {
             if (!(i & 15)) fprintf(pfile, "\n%04X:  ", i);
             fprintf(pfile, "%02X ", ((unsigned char *) data)[i]);
         }
+    } else {
+        fprintf(pfile,
+                "source ip: %s, dest_ip: %s\nsource_port: %u, dest_port: %hu\n no application header!\n",
+                source_ip, dest_ip, ntohs(tcp_header->th_sport), ntohs(tcp_header->th_dport));
     }
-    fprintf(pfile, "\n");
+
+    fprintf(pfile,
+            "\n");
 
     fclose(pfile);
 }
