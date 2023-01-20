@@ -1,4 +1,4 @@
-all: snifferNspoofer sniffer spoofer #docker gateway
+all: snifferNspoofer sniffer spoofer
 
 sniffer: sniffer.o
 	gcc sniffer.o -o sniffer -lpcap
